@@ -7,17 +7,17 @@ import common
 # Functions shared with other scripts can be found in common.py
 
 
-def read_simple_cache(output_dir):
+def read_simple_cache(dump_dir):
     cache_dict = {}
     cache_data_list = []
 
     # Read real index file containing all cache entry addresses
-    real_index = open(output_dir + "/Dumps/Cache/index-dir/the-real-index", "rb")
+    real_index = open(dump_dir + "/Dumps/Cache/index-dir/the-real-index", "rb")
     cache_address_array = read_real_index(real_index)
 
     for cache_address in cache_address_array:
         cache_name = cache_address[0] + "_0"
-        for root, dirs, files in os.walk(output_dir + "/Dumps"):
+        for root, dirs, files in os.walk(dump_dir + "/Dumps"):
             for i in files:
                 if cache_name in i:
                     range_url_data = ""
@@ -45,7 +45,7 @@ def read_simple_cache(output_dir):
                         if file_size == 0:
                             range_file = cache_address[0] + "_s"
                             range_url_data, range_url_length, file_size, resource_data = read_range_file(range_file,
-                                                                                                         output_dir)
+                                                                                                         dump_dir)
                             file_name = range_file
                         else:
                             file_offset = cache_file.seek(24 + url_length, os.SEEK_SET)
@@ -62,7 +62,7 @@ def read_simple_cache(output_dir):
                         # Save information to dictionary for further use
                         if not file_size == 0:
                             # Extract files found within cache and calculate their hashes
-                            md5, sha1, sha256 = common.extract_file(resource_data, filename, output_dir,
+                            md5, sha1, sha256 = common.extract_file(resource_data, filename, dump_dir,
                                                                     content_encoding)
                             cache_dict["Filename"] = filename
                             cache_dict["URL"] = url_data
