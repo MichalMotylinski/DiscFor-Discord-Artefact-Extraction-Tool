@@ -1,0 +1,121 @@
+# List of media types with corresponding file extensions used for file reconstruction
+#
+# Audio
+#
+audio/3gpp	.3gp
+audio/basic	.au
+audio/mpeg	.mp3
+audio/xaiff	.aiff
+audio/x-wav	.wav
+audio/webm	.webm
+# 
+# Application
+#
+application/eps	.eps
+application/font-woff	.woff
+application/javascript	.js
+application/json	.json
+application/msword	.doc
+application/octet-stream	.bin
+application/oda	.oda
+application/opensearchdescription+xml	.osdx
+application/pdf	.pdf
+application/postscript	.ps
+application/vnd.apple.mpegurl	.m3u
+application/vnd.ms-access	.mdb
+application/vnd.ms-excel	.xls
+application/vnd.ms-excel.addin.macroEnabled.12	.xlam
+application/vnd.ms-excel.sheet.binary.macroEnabled.12	.xlsb
+application/vnd.ms-excel.sheet.macroEnabled.12	.xlsm
+application/vnd.ms-excel.template.macroEnabled.12	.xltm
+application/vnd.ms-powerpoint	.ppt
+application/vnd.ms-powerpoint.addin.macroEnabled.12	.ppam
+application/vnd.ms-powerpoint.presentation.macroEnabled.12	.pptm
+application/vnd.ms-powerpoint.slideshow.macroEnabled.12	.ppsm
+application/vnd.ms-powerpoint.template.macroEnabled.12	.potm
+application/vnd.ms-word.document.macroEnabled.12	.docm
+application/vnd.ms-word.template.macroEnabled.12	.dotm
+application/vnd.openxmlformats-officedocument.presentationml.presentation	.pptx
+application/vnd.openxmlformats-officedocument.presentationml.template	.potx
+application/vnd.openxmlformats-officedocument.presentationml.slideshow	.ppsx
+application/vnd.openxmlformats-officedocument.wordprocessingml.document	.docx
+application/vnd.openxmlformats-officedocument.wordprocessingml.template	.dotx
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet	.xlsx
+application/vnd.openxmlformats-officedocument.spreadsheetml.template	.xltx
+application/x-bcpio	.bcpio
+application/x-cpio	.cpio
+application/x-csh	.csh
+application/x-dvi	.dvi
+application/x-eps	.eps
+application/x-gtar	.gtar
+application/x-hdf	.hdf
+application/x-latex	.latex
+application/x-mif	.mif
+application/x-msdos-program	.exe
+application/x-netcdf	.cdf
+application/x-python-code	.pyc
+application/x-tar	.tar
+application/x-troff-man	.man
+application/x-troff-me	.me
+application/x-troff-ms	.ms
+application/x-troff	.roff
+application/zipmap	.zip
+#
+# Example
+#
+# Font
+#
+font/woff	.woff
+font/woff2	.woff2
+#
+# Image
+#
+image/eps	.eps
+image/gif	.gif
+image/ief	.ief
+image/jpeg	.jpg
+image/png	.png
+image/svg+xml	.svg
+image/tiff	.tiff
+image/vnd.microsoft.icon	.ico
+image/x-eps	.eps
+image/x-icon	.ico
+image/x-ms-bmp	.bmp
+image/x-portable-anymap	.pnm
+image/x-portable-bitmap	.pbm
+image/x-portable-greymap	.pgm
+image/x-portable-pixmap	.ppm
+image/x-shockwave-flash	.swf
+image/webp	.webp
+#
+# Message
+#
+message/rfc822	.eml
+#
+# Model
+#
+# Multipart
+#
+# Text
+#
+text/css	.css
+text/csv	.csv
+text/html	.html
+text/plain	.txt
+text/richtext	.rtx
+text/tab-separated-values	.tsv
+text/xml	.xml
+text/x-python	.py
+text/x-setext	.etx
+text/x-vcard	.vcf
+text/javascript	.js
+#
+# Video
+#
+video/3gpp	.3gp
+video/mp4	.mp4
+video/mpeg	.mpeg
+video/quicktime	.mov
+video/x-msvideo	.avi
+video/x-dgi-movie	.movie
+video/webm	.webm
