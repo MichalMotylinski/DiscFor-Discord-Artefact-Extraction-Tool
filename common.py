@@ -1,14 +1,17 @@
+# List of standard library imports
+from datetime import datetime, timedelta
 from gzip import decompress
 import hashlib
-from os.path import join, exists
+from os.path import join, exists, splitext, basename
 from re import findall
-from datetime import datetime, timedelta
 from urllib.parse import urlparse
-from os.path import splitext, basename
 
 
+# This script contains functions used by other scripts to avoid code duplicates
+
+
+# Function storing dictionary of supported extensions
 def read_extensions():
-    # Dictionary of supported extensions
     extensions = {"audio/3gpp": ".3gp", "audio/basic": ".au", "audio/mpeg": ".mp3", "audio/xaiff": ".aiff",
                   "audio/x-wav": ".wav", "audio/webm": ".webm", "application/eps": ".eps",
                   "application/font-woff": ".woff", "application/javascript": ".js", "application/json": ".json",
@@ -54,16 +57,18 @@ def read_extensions():
     return extensions
 
 
+# Conversion of hexadecimal version of date
 def hex_time_convert(time_in_microseconds):
     epoch = datetime(1601, 1, 1)
     dirty_time = epoch + timedelta(microseconds=time_in_microseconds)
-    date, hmr = str(dirty_time).split(" ", 1)
+    date, time = str(dirty_time).split(" ", 1)
     date = datetime.strptime(date, "%Y-%m-%d").strftime("%d/%m/%Y")
-    hmr = hmr.split(".", 1)[0]
-    clean_time = date + " " + hmr
+    time = time.split(".", 1)[0]
+    clean_time = date + " " + time
     return clean_time
 
 
+# Create name for a new file from URL address
 def get_filename(content_type, resource_content_size, url_data):
     filename = ""
     file_extension = ""
@@ -89,6 +94,7 @@ def get_filename(content_type, resource_content_size, url_data):
     return filename, file_extension
 
 
+# Function cleaning server HTTP response data
 def read_http_response(http_response_data):
     server_response = ""
     content_type = ""
@@ -102,6 +108,7 @@ def read_http_response(http_response_data):
     server_ip = ""
     timezone = ""
 
+    # Appropriate data is fetched and cleaned if needed
     if http_response_data:
         try:
             string_start = http_response_data.lower().find("http")
@@ -135,7 +142,7 @@ def read_http_response(http_response_data):
                 string_end = http_response_data.find("\\x00", string_start)
                 response_time = http_response_data[string_start:string_end].split(":", 1)[1].strip()
                 if not response_time == "":
-                    response_time, timezone = time_convert(response_time, timezone)
+                    response_time, timezone = time_convert(response_time)
         except IndexError:
             response_time = ""
             timezone = ""
@@ -144,9 +151,9 @@ def read_http_response(http_response_data):
             string_start = http_response_data.lower().find("last-modified:")
             if not string_start == -1:
                 string_end = http_response_data.find("\\x00", string_start)
-                last_modified = http_response_data[string_start:string_end].split(":", 1)[1].strip()
-                if not last_modified == "":
-                    last_modified, timezone = time_convert(last_modified, timezone)
+                last_modified_data = http_response_data[string_start:string_end].split(":", 1)[1].strip()
+                if not last_modified_data == "":
+                    last_modified, timezone = time_convert(last_modified_data)
         except IndexError:
             last_modified = ""
             timezone = ""
@@ -173,7 +180,7 @@ def read_http_response(http_response_data):
                 string_end = http_response_data.find("\\x00", string_start)
                 expire_time = http_response_data[string_start:string_end].split(":", 1)[1].strip()
                 if not expire_time == "":
-                    expire_time, timezone = time_convert(expire_time, timezone)
+                    expire_time, timezone = time_convert(expire_time)
         except IndexError:
             expire_time = ""
             timezone = ""
@@ -195,13 +202,16 @@ def read_http_response(http_response_data):
         timezone, content_encoding, server_ip
 
 
+# Simple function converting month string into number representing it
 def month_convert(month):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     month_num = str("{:02d}".format(months.index(month) + 1))
     return month_num
 
 
-def time_convert(time, timezone):
+# Take apart time and reconstruct it in a new format
+def time_convert(time):
+    timezone = ""
     old_time = time.split(" ")
     if len(old_time) < 5:
         new_time = ""
@@ -210,17 +220,18 @@ def time_convert(time, timezone):
             old_time.insert(0, "")
         date = old_time[1] + "/" + month_convert(old_time[2]) + "/" + old_time[3]
         new_time = date + " " + old_time[4]
-        if timezone == "":
-            timezone = old_time[5]
+        timezone = old_time[5]
     return new_time, timezone
 
 
+# Writing content data to a new file
 def content_to_file(resource_data, filename, file_extension, output_dir, content_encoding, url_data, content_type):
     fullname = ""
     md5 = ""
     sha1 = ""
     sha256 = ""
 
+    # Set appropriate extraction folder depending on file type
     if r"/messages?" in url_data:
         extracted_dir = join(output_dir, "Extracted", "Chat_logs")
     elif "image" in content_type:

@@ -1,10 +1,14 @@
-from os.path import join
+# List of standard library imports
 from os import listdir
+from os.path import join
 from re import findall
 
 
+# This script contains function used for data recovery from Discord activity log
+
+
+# Read data from activity log file
 def get_activity_data(output_dir):
-    # Read data from activity log file
     server_list = []
     channel_list = []
     mail_list = []

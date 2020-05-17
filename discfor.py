@@ -1,10 +1,11 @@
 # List of standard library imports
-from os.path import dirname, join
 from os import listdir, walk, makedirs
-from shutil import copytree, copy2, Error
-from time import strftime, perf_counter
+from os.path import dirname, join
 from pathlib import Path
 import sys
+from shutil import copytree, copy2, Error
+from time import strftime, perf_counter
+
 
 # List of local imports
 from activity import get_activity_data
@@ -13,8 +14,12 @@ from report import chat_to_html, report_cache, report_activity
 from simplecache import read_simple_cache
 
 
+# This is main script containing functions run at the start of the program
+# Functions from other scripts are called from here
+
+
+# Main menu function is the starting point of DiscFor.
 def main_menu():
-    # Main menu function
     home_path = str(Path.home())
     print("===================================================")
     print("DISCFOR MAIN MENU")
@@ -28,11 +33,15 @@ def main_menu():
         output_path = input()
         try:
             if not output_path:
+                # Check how program is run
                 if getattr(sys, "frozen", False):
+                    # If tool is run as executable file
                     output_path = dirname(sys.executable)
                 else:
+                    # If tool is run as a script
                     output_path = sys.path[0]
             else:
+                # Ensure that full path is taken
                 if sys.path[0] not in output_path:
                     output_path = join(sys.path[0], output_path)
             discord_path = system_search(home_path)
@@ -44,8 +53,8 @@ def main_menu():
         print("\nPlease provide path for extraction")
         try:
             target_path = input()
-        # print("\nIncorrect file/folder/volume syntax\n")
             if target_path or target_path == "":
+                # Check if structure of a directory given by user is correct
                 if "Cache" and "Local Storage" in listdir(target_path):
                     print("Please provide output path")
                     output_path = input()
@@ -72,9 +81,12 @@ def main_menu():
         main_menu()
 
 
+# Function searching file system for Discord directory
 def system_search(search_dir):
     print("\nSearching system...")
     discord_path = ""
+    # Generate files and directories of current file system
+    # Traverse generated directory tree in search of Discord folder
     for root, dirs, files in walk(search_dir):
         for directory in dirs:
             if directory.lower() == "discord":
@@ -89,10 +101,12 @@ def system_search(search_dir):
         return print("Discord folder not found"), main_menu()
 
 
-# Create dump directories
+# Create dump directories for output of the program
 def create_dump(discord_path, output_path):
     output_dir = ""
+    # Check if Discord files are locked by application
     try:
+        # File index appears in all Discord distributions. Check if its set to read-only state.
         with open(join(discord_path, "Cache", "index"), "rb"):
             in_use = False
     except Error and PermissionError:
@@ -110,6 +124,7 @@ def create_dump(discord_path, output_path):
         makedirs(join(output_dir, "Reports", "Chat_logs"))
 
         cache_path = join(discord_path, "Cache")
+        # Copy Discord cache directory with all of its content
         copytree(cache_path, join(output_dir, "Dumps", "Cache"))
         activity_path = join(discord_path, "Local Storage", "leveldb")
         for file in listdir(activity_path):
@@ -122,6 +137,8 @@ def create_dump(discord_path, output_path):
     return output_dir
 
 
+# Three phases of recovery are called from here.
+# Creation of output directory, actual extraction of data and reports creation.
 def recovery(discord_path, output_path):
     print("\nCreating data backup...")
     backup_start = perf_counter()
@@ -129,6 +146,7 @@ def recovery(discord_path, output_path):
     backup_end = perf_counter()
     print("Backup created successfully in: ", round((backup_end - backup_start), 2), "s")
     recovery_start = perf_counter()
+    # Check what structure is used (Disk Cache or Simple Cache) and call appropriate function
     if "data_0" and "data_1" and "data_2" and "data_3" in listdir(join(output_dir, "Dumps", "Cache")):
         print("\nBeginning data extraction...")
         cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_cache_entry(output_dir)
@@ -153,6 +171,7 @@ def recovery(discord_path, output_path):
     print("Total time: ", round((reporting_end - backup_start), 2), "s")
     print("\nYou can find results of extraction in:")
     print(output_dir, "\n")
+    # Clear memory before ending current iteration
     for name in dir():
         if not name.startswith("_"):
             if name in globals():
@@ -161,4 +180,5 @@ def recovery(discord_path, output_path):
                 del locals()[name]
 
 
+# Start the program
 main_menu()

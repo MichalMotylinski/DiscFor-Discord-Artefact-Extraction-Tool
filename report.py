@@ -1,35 +1,40 @@
+# List of standard library imports
 from csv import writer
 from json import dump, load
-from os.path import join, exists
 from os import listdir
+from os.path import join, exists
 
 
+# This script contains functions responsible for creation of reports
+
+
+# Create reports for data recovered from cache
 def report_cache(cache_data_list, output_dir):
     # Produce report in json format
     with open(join(output_dir, "Reports", "cache_data.json"), "w") as f:
         dump(cache_data_list, f)
 
-    # Produce report in json format
+    # Produce report in csv format
     with open(join(output_dir, "Reports", "cache_data.csv"), "w", newline="") as f:
         write_data = writer(f)
         write_data.writerow(["Filename", "URL", "Range URL", "Content Type", "File Size", "Last Accessed",
                              "Cache Entry Created", "Last Modified", "Expire Time", "Response Time", "User Timezone",
                              "Cache Entry Location", "Response Location", "File Location", "Content Encoding", "ETag",
                              "Max Age", "Server Response", "Server Name", "Server IP", "URL Length", "Range URL Length",
-                             "MD5", "SHA1", "SHA256"]
-                            )
+                             "MD5", "SHA1", "SHA256"])
         for e in cache_data_list:
             write_data.writerow([e["Filename"], e["URL"], e["Range URL"], e["Content Type"], e["File Size"],
                                  e["Last Accessed"], e["Cache Entry Created"], e["Last Modified"], e["Expire Time"],
                                  e["Response Time"], e["User Timezone"], e["Cache Entry Location"],
                                  e["Response Location"], e["File Location"], e["Content Encoding"], e["ETag"],
                                  e["Max Age"], e["Server Response"], e["Server Name"], e["Server IP"], e["URL Length"],
-                                 e["Range URL Length"], e["MD5"], e["SHA1"], e["SHA256"]]
-                                )
+                                 e["Range URL Length"], e["MD5"], e["SHA1"], e["SHA256"]])
 
 
+# Create report for data recovered from activity log
 def report_activity(servers, channels, mails, output_dir):
     elements = max(len(servers), len(channels), len(mails))
+    # Fill lists with dashes to avoid index errors
     for i in range(0, elements):
         if len(servers) < elements:
             servers.append("-")
@@ -48,16 +53,18 @@ def report_activity(servers, channels, mails, output_dir):
                 x += 1
 
 
+# Create chat log reports in form of HTML files
 def chat_to_html(cache_data_list, output_dir):
     logs_dir = join(output_dir, "Extracted", "Chat_logs")
-    listdir(output_dir)
     chat_list = listdir(logs_dir)
     chat_list.sort()
 
+    # Check if chat log contains more than one conversation.
     for file in chat_list:
         with open(join(logs_dir, file), "r") as f:
             data = load(f)
         if "messages" in data:
+            # If more than one conversation found, move them to separate files
             for e in data["messages"]:
                 i = 0
                 if exists(join(logs_dir, f"{e[0]['channel_id']}.json")):
@@ -68,6 +75,7 @@ def chat_to_html(cache_data_list, output_dir):
                 else:
                     with open(join(logs_dir, f"{e[0]['channel_id']}.json"), "w") as f2:
                         dump(e, f2)
+    # Recover messages from chat logs and create conversation reports
     for file in chat_list:
         messages = ""
         avatar_path = ""
@@ -78,6 +86,8 @@ def chat_to_html(cache_data_list, output_dir):
             filename = file.split(" ", 1)[0]
         else:
             filename = file.split(".", 1)[0]
+        # Create structure of HTML file
+        # Indentation rule is broken here to save space in the final reports
         html_struct = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -93,6 +103,7 @@ table, th, td{{border: 1px solid black;}}
 """
         with open(join(logs_dir, file), "r") as f:
             data = load(f)
+        # Reading elements of a message
         if any("channel_id" in s for s in data):
             for e in data:
                 avatar = e["author"]["avatar"]
@@ -112,6 +123,7 @@ table, th, td{{border: 1px solid black;}}
                             if exists(join(output_dir, "Extracted", "Images", att_file)):
                                 att_path = join(output_dir, "Extracted", "Images", att_file)
                                 break
+                # Filling structure of a message with recovered data
                 message = f"""<table width="100%">
 <tr><th width="30%" align="center">Message Id</th><td>{e["id"]}</td><th>Time</th><td width="30%">{timestamp}</td></tr>
 <tr><th rowspan="3">Author</th>
@@ -125,8 +137,10 @@ table, th, td{{border: 1px solid black;}}
 </table>
 <br/>
 """
+                # Reconstruction of conversation by adding single messages together
                 messages = messages + message
         if not messages == "":
+            # Pasting conversation into HTML report structure and saving all in a new file
             html_file = html_struct % messages
             with open(join(output_dir, "Reports", "Chat_logs", filename + ".html"), "w", encoding="utf-8") as report:
                 report.write(html_file)
