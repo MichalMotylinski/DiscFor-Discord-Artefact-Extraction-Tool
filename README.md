@@ -1,4 +1,4 @@
-# DiscordExtractor
+# DiscFor
 Digital Artefact Extraction Tool for Discord Application
 
 Developed as part of my B.Sc. (Hons.) Dissertation entitled "Retrieval and analysis of digital artefacts from Discord local directories"
