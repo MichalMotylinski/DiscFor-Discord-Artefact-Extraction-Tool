@@ -194,7 +194,7 @@ def read_http_response(http_response_data):
             content_encoding = ""
 
         try:
-            server_ip = findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}", http_response_data)[0].strip()
+            server_ip = findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}", http_response_data[len(http_response_data)-160:len(http_response_data)])[0].strip()
         except IndexError:
             server_ip = ""
 

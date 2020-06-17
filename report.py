@@ -82,10 +82,7 @@ def chat_to_html(cache_data_list, output_dir):
         url = ""
         att_path = ""
         img_url = ""
-        if " " in file:
-            filename = file.split(" ", 1)[0]
-        else:
-            filename = file.split(".", 1)[0]
+        filename = file.split(".", 1)[0]
         # Create structure of HTML file
         # Indentation rule is broken here to save space in the final reports
         html_struct = f"""<!DOCTYPE html>

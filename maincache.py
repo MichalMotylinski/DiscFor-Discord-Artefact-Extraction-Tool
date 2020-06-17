@@ -62,6 +62,7 @@ def read_cache_entry(dump_dir):
                     url_data = data_1.read(url_length).decode("ascii")
             else:
                 # Longer entries might exist in different block files thus reading option for all
+                print(cache_address_array.index(cache_address), url_data)
                 if long_url_address[::-1].hex()[0] == "a":
                     block_num = int(long_url_address[:2][::-1].hex(), 16)
                     block_offset = 8192 + (block_num * 256)
