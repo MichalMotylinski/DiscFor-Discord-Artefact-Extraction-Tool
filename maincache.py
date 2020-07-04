@@ -4,7 +4,7 @@ from os.path import join, exists
 
 # List of local imports
 from common import get_filename, content_to_file, read_http_response, hex_time_convert
-
+from cachedata import Cache
 
 # This script contains functions used only for data recovery from Chromium Disk Cache structure
 # Functions shared with other scripts can be found in common.py
@@ -12,127 +12,119 @@ from common import get_filename, content_to_file, read_http_response, hex_time_c
 
 # Main class for Disk Cache structure reading data from cache entries
 def read_cache_entry(dump_dir):
-    range_data = []
-    cache_data_list = []
-    url_data = ""
+    cache_list = []
+    cache_temp_list1 = []
+    cache_temp_list2 = []
+
     reconstructed = 0
     recovered = 0
     cache_dir = join(dump_dir, "Dumps", "Cache")
-    cache_address_array = read_rankings(cache_dir)
-    all_entries = len(cache_address_array)
+    ranking_list = read_rankings(cache_dir)
+    all_entries = len(ranking_list)
 
-    # Begin extraction by iterating through all cache entries (based on addresses from rankings file)
-    for cache_address in cache_address_array:
-        # Read information for current entry
-        with open(join(cache_dir, "data_1"), "rb") as data_1:
-            block_num = cache_address[0]
-            block_offset = 8192 + (block_num * 256)
-            entry_location = "data_1" + " [" + str(block_offset) + "]"
+    with open(join(cache_dir, "data_1"), "rb") as data_1:
+        for entry in ranking_list:
+            block_offset = entry[0][1]
+            cache_entry = Cache()
 
-            data_1.seek(block_offset + 32, SEEK_SET)
-            url_length = int(data_1.read(4)[::-1].hex(), 16)
-            long_url_address = data_1.read(4)
-            http_response_size = int(data_1.read(4)[::-1].hex(), 16)
-            content_size = int(data_1.read(4)[::-1].hex(), 16)
-
-            data_1.seek(block_offset + 56, SEEK_SET)
-            http_response_address = data_1.read(4)[::-1].hex()
-            resource_content_address = data_1.read(4)[::-1].hex()
-
+            # Find out if the entry is full or partial
             data_1.seek(block_offset + 72, SEEK_SET)
             cache_content_part = int(data_1.read(1).hex(), 16)
 
-            range_url_data = ""
-            range_url_length = 0
+            if cache_content_part == 2:
+                data_1.seek(block_offset + 24, SEEK_SET)
+                partial_entry_created_time = hex_time_convert(int(data_1.read(8)[::-1].hex(), 16))
 
-            if long_url_address == b"\x00\x00\x00\x00":
-                # Pattern deviation included (some files have 2 cache entries)
-                # Separated parts are saved to a list for further reconstruction
-                if cache_content_part == 2:
-                    data_1.seek(block_offset + 96, SEEK_SET)
-                    range_url_data = data_1.read(url_length).decode("ascii")
-                    range_url_length = len(range_url_data)
-                    if range_url_data.endswith("0") and not content_size == 0:
-                        range_data.append([range_url_data, range_url_length, resource_content_address, content_size])
-                        reconstructed += 1
-                    continue
-                else:
-                    # Simple reading for URL located within current entry
-                    data_1.seek(block_offset + 96, SEEK_SET)
-                    url_data = data_1.read(url_length).decode("ascii")
-            else:
+                data_1.seek(block_offset + 32, SEEK_SET)
+                range_url_length = int(data_1.read(4)[::-1].hex(), 16)
+
+                data_1.seek(block_offset + 48, SEEK_SET)
+                content_size = int(data_1.read(4)[::-1].hex(), 16)
+
+                data_1.seek(block_offset + 60, SEEK_SET)
+                content_location = read_entry(data_1.read(4)[::-1].hex())
+
+                data_1.seek(block_offset + 96, SEEK_SET)
+                range_url_data = data_1.read(range_url_length).decode("ascii")
+
+                if range_url_data.endswith("0") and content_size != 0:
+                    cache_entry.partial_entry_created_time = partial_entry_created_time
+                    cache_entry.range_url = range_url_data
+                    cache_entry.range_url_length = range_url_length
+                    cache_entry.range_url_location = ("data_1", block_offset + 96)
+                    cache_entry.content_location = content_location
+                    cache_entry.content_size = content_size
+                    cache_temp_list2.append(cache_entry)
+                    reconstructed += 1
+                continue
+
+            data_1.seek(block_offset + 24, SEEK_SET)
+            cache_entry.entry_created_time = hex_time_convert(int(data_1.read(8)[::-1].hex(), 16))
+
+            data_1.seek(block_offset + 32, SEEK_SET)
+            cache_entry.url_length = int(data_1.read(4)[::-1].hex(), 16)
+            long_url_location = read_entry(data_1.read(4)[::-1].hex())
+            cache_entry.response_size = int(data_1.read(4)[::-1].hex(), 16)
+            cache_entry.content_size = int(data_1.read(4)[::-1].hex(), 16)
+
+            data_1.seek(block_offset + 56, SEEK_SET)
+            cache_entry.response_location = read_entry(data_1.read(4)[::-1].hex())
+            cache_entry.content_location = read_entry(data_1.read(4)[::-1].hex())
+
+            if long_url_location:
                 # Longer entries might exist in different block files thus reading option for all
-                if long_url_address[::-1].hex()[0] == "a":
-                    block_num = int(long_url_address[:2][::-1].hex(), 16)
-                    block_offset = 8192 + (block_num * 256)
-                    data_1.seek(block_offset, SEEK_SET)
-                    url_data = data_1.read(url_length).decode("ascii")
-                elif long_url_address[::-1].hex()[0] == "b":
-                    with open(join(cache_dir, "data_2"), "rb") as data_2:
-                        block_num = int(long_url_address[:2][::-1].hex(), 16)
-                        block_offset = 8192 + (block_num * 1024)
-                        data_2.seek(block_offset, SEEK_SET)
-                        url_data = data_2.read(url_length).decode("ascii")
-                elif long_url_address[::-1].hex()[0] == "c":
-                    with open(join(cache_dir, "data_3"), "rb") as data_3:
-                        block_num = int(long_url_address[:2][::-1].hex(), 16)
-                        block_offset = 8192 + (block_num * 4096)
-                        data_3.seek(block_offset, SEEK_SET)
-                        url_data = data_3.read(url_length).decode("ascii")
+                cache_entry.url = get_data(cache_dir, long_url_location, cache_entry.url_length).decode("ascii")
+                cache_entry.url_location = long_url_location
+            else:
+                data_1.seek(block_offset + 96, SEEK_SET)
+                cache_entry.url = data_1.read(cache_entry.url_length).decode("ascii")
+                cache_entry.url_location = ("data_1", block_offset + 96)
 
-            # Get server HTTP response
-            response_data, response_location = get_http_response(cache_dir, http_response_size, http_response_address)
+            if cache_content_part == 0 and cache_entry.content_size != 0:
+                cache_list.append(cache_entry)
+            elif cache_content_part == 1:
+                cache_temp_list1.append(cache_entry)
+
+            get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
+
             # Fetch appropriate data from server HTTP response
-            server_response, content_type, etag, response_time, last_modified, max_age, server_name, expire_time, \
-                timezone, content_encoding, server_ip = read_http_response(response_data)
+            read_http_response(str(get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)), cache_entry)
 
-            # Save information to dictionary for further use
-            if not http_response_size == 0:
-                cache_dict = {"Filename": "", "URL": url_data, "Range URL": range_url_data,
-                              "Content Type": content_type, "File Size": content_size,
-                              "Last Accessed": cache_address[1], "Cache Entry Created": cache_address[2],
-                              "Last Modified": last_modified, "Expire Time": expire_time,
-                              "Response Time": response_time, "User Timezone": timezone,
-                              "Cache Entry Location": entry_location, "Response Location": response_location,
-                              "File Location": resource_content_address, "Content Encoding": content_encoding,
-                              "ETag": etag, "Max Age": max_age, "Server Response": server_response,
-                              "Server Name": server_name, "Server IP": server_ip, "URL Length": url_length,
-                              "Range URL Length": range_url_length, "MD5": "", "SHA1": "", "SHA256": ""}
-                # Append current dictionary values to a list of all entries
-                cache_data_list.append(cache_dict)
+            cache_entry.entry_location = entry[0]
+            cache_entry.last_accessed_time = entry[1]
+            cache_entry.last_modified_time = entry[2]
 
-    # Reconstruct entries by joining items from range_list with their other parts in main list
-    for i in range_data:
-        for j in cache_data_list:
-            if j["URL"] in i[0]:
-                j["Range URL"] = i[0]
-                j["Range URL Length"] = i[1]
-                j["File Location"] = i[2]
-                j["File Size"] = i[3]
-                break
-    range_data.clear()
+        for i in cache_temp_list2:
+            for j in cache_temp_list1:
+                if j.url in i.range_url:
+                    j.partial_entry_created_time = i.partial_entry_created_time
+                    j.range_url = i.range_url
+                    j.range_url_length = i.range_url_length
+                    j.range_url_location = i.range_url_location
+                    j.content_size = i.content_size
+                    j.content_location = i.content_location
+                    cache_list.append(j)
+                    break
 
-    # Remove empty files from the list
-    cache_data_list[:] = [x for x in cache_data_list if not x["File Size"] == 0]
+        cache_temp_list1.clear()
+        cache_temp_list2.clear()
 
-    # Extract files found within cache and calculate their hashes
-    for i in cache_data_list:
-        filename, file_extension = get_filename(i["Content Type"], i["File Size"], i["URL"])
-        i["Filename"] = filename, file_extension
-        resource_data, i["File Location"] = read_resource_content(cache_dir, i["File Size"], i["File Location"])
-        i["Filename"], i["MD5"], i["SHA1"], i["SHA256"] = content_to_file(resource_data, filename, file_extension,
-                                                                          dump_dir, i["Content Encoding"], i["URL"],
-                                                                          i["Content Type"])
-        if resource_data is not None:
-            recovered += 1
+        for entry in cache_list:
+            filename, extension = get_filename(entry.content_type, entry.url)
+            content = get_data(cache_dir, entry.content_location, entry.content_size)
+            content_to_file(content, filename, extension, dump_dir, entry)
 
-    empty_entries = all_entries - recovered
-    return cache_data_list, all_entries, recovered, empty_entries, reconstructed
+            if content is not None:
+                recovered += 1
+
+        empty_entries = all_entries - recovered
+    return cache_list, all_entries, recovered, empty_entries, reconstructed
 
 
 # Read all cache addresses and control data from the rankings file
 def read_rankings(cache_dir):
-    cache_address_array = []
+    ranking_list = []
+
     with open(join(cache_dir, "data_0"), "rb") as index_file:
         index_file.seek(16, SEEK_SET)
         entry_count = int(index_file.read(4)[:2][::-1].hex(), 16)
@@ -146,77 +138,38 @@ def read_rankings(cache_dir):
             if not entry[24:28] == b"\x00\x00\x00\x00":
                 # Hexadecimal date values get converted into readable format
                 last_access_time = hex_time_convert(int(entry[0:7][::-1].hex(), 16))
-                entry_creation_time = hex_time_convert(int(entry[8:15][::-1].hex(), 16))
-                address = int(entry[24:27][:2][::-1].hex(), 16)
-                cache_address_array.append([address, last_access_time, entry_creation_time])
+                entry_created_time = hex_time_convert(int(entry[8:15][::-1].hex(), 16))
+                address = read_entry(entry[24:28][::-1].hex())
+                objects = (address, last_access_time, entry_created_time)
+                ranking_list.append(objects)
                 i += 1
             offset += 36
-    return cache_address_array
+    return ranking_list
 
 
-def get_http_response(cache_dir, http_response_size, http_response_address):
-    http_response_data = ""
-    response_location = ""
+def read_entry(content_address):
+    resource_location = ()
 
-    # Recover server HTTP response which contains information about the file
-    # Support for all 3 block files that may contain response
-    if not http_response_size == 0 and not http_response_address == "\\x00\\x00\\x00\\x00":
-        if http_response_address[0] == "a":
-            with open(join(cache_dir, "data_1"), "rb") as data_1:
-                block_num = int(http_response_address[4:8], 16)
-                block_offset = 8192 + (block_num * 256)
-                data_1.seek(block_offset, SEEK_SET)
-                http_response_data = str(data_1.read(http_response_size))
-                response_location = "data_1" + " [" + str(block_offset) + "]"
-        elif http_response_address[0] == "b":
-            with open(join(cache_dir, "data_2"), "rb") as data_2:
-                block_num = int(http_response_address[4:8], 16)
-                block_offset = 8192 + (block_num * 1024)
-                data_2.seek(block_offset, SEEK_SET)
-                http_response_data = str(data_2.read(http_response_size))
-                response_location = "data_2" + " [" + str(block_offset) + "]"
-        elif http_response_address[0] == "c":
-            with open(join(cache_dir, "data_3"), "rb") as data_3:
-                block_num = int(http_response_address[4:8], 16)
-                block_offset = 8192 + (block_num * 4096)
-                data_3.seek(block_offset, SEEK_SET)
-                http_response_data = str(data_3.read(http_response_size))
-                response_location = "data_3" + " [" + str(block_offset) + "]"
-    return http_response_data, response_location
+    # Find and fetch data from appropriate location
+    if content_address[0] == "a":
+        block_num = int(content_address[4:8], 16)
+        block_offset = 8192 + (block_num * 256)
+        resource_location = ("data_1", block_offset)
+    elif content_address[0] == "b":
+        block_num = int(content_address[4:8], 16)
+        block_offset = 8192 + (block_num * 1024)
+        resource_location = ("data_2", block_offset)
+    elif content_address[0] == "c":
+        block_num = int(content_address[4:8], 16)
+        block_offset = 8192 + (block_num * 4096)
+        resource_location = ("data_3", block_offset)
+    elif content_address[0] == "8":
+        resource_location = ("f_" + content_address[2:8], 0)
+    return resource_location
 
 
-# Read resource content which will be later used to reconstruct a file
-def read_resource_content(cache_dir, resource_content_size, resource_content_address):
-    file_location = ""
-    resource_data = None
-    if not resource_content_size == 0:
-        if not resource_content_address == "":
-            # Find and fetch data from appropriate location
-            if resource_content_address[0] == "a":
-                with open(join(cache_dir, "data_1"), "rb") as data_1:
-                    block_num = int(resource_content_address[4:8], 16)
-                    block_offset = 8192 + (block_num * 256)
-                    data_1.seek(block_offset, SEEK_SET)
-                    resource_data = data_1.read(resource_content_size)
-                    file_location = "data_1" + " [" + str(block_offset) + "]"
-            elif resource_content_address[0] == "b":
-                with open(join(cache_dir, "data_2"), "rb") as data_2:
-                    block_num = int(resource_content_address[4:8], 16)
-                    block_offset = 8192 + (block_num * 1024)
-                    data_2.seek(block_offset, SEEK_SET)
-                    resource_data = data_2.read(resource_content_size)
-                    file_location = "data_2" + " [" + str(block_offset) + "]"
-            elif resource_content_address[0] == "c":
-                with open(join(cache_dir, "data_3"), "rb") as data_3:
-                    block_num = int(resource_content_address[4:8], 16)
-                    block_offset = 8192 + (block_num * 4096)
-                    data_3.seek(block_offset, SEEK_SET)
-                    resource_data = data_3.read(resource_content_size)
-                    file_location = "data_3" + " [" + str(block_offset) + "]"
-            elif resource_content_address[0] == "8":
-                file_location = "f_" + resource_content_address[2:8]
-                if exists(join(cache_dir, file_location)):
-                    external_file = open(join(cache_dir, file_location), "rb")
-                    resource_data = external_file.read()
-
-    return resource_data, file_location
+def get_data(cache_dir, data_location, data_size):
+    with open(join(cache_dir, data_location[0]), "rb") as file:
+        file.seek(data_location[1], SEEK_SET)
+        data = file.read(data_size)
+    return data
