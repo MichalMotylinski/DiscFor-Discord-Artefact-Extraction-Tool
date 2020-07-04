@@ -8,27 +8,90 @@ from os.path import join, exists
 # This script contains functions responsible for creation of reports
 
 
-# Create reports for data recovered from cache
-def report_cache(cache_data_list, output_dir):
-    # Produce report in json format
-    with open(join(output_dir, "Reports", "cache_data.json"), "w") as f:
-        dump(cache_data_list, f)
-
+# Create report for data recovered from cache
+def report_cache(cache_list, output_dir):
     # Produce report in csv format
     with open(join(output_dir, "Reports", "cache_data.csv"), "w", newline="") as f:
         write_data = writer(f)
-        write_data.writerow(["Filename", "URL", "Range URL", "Content Type", "File Size", "Last Accessed",
-                             "Cache Entry Created", "Last Modified", "Expire Time", "Response Time", "User Timezone",
-                             "Cache Entry Location", "Response Location", "File Location", "Content Encoding", "ETag",
-                             "Max Age", "Server Response", "Server Name", "Server IP", "URL Length", "Range URL Length",
-                             "MD5", "SHA1", "SHA256"])
-        for e in cache_data_list:
-            write_data.writerow([e["Filename"], e["URL"], e["Range URL"], e["Content Type"], e["File Size"],
-                                 e["Last Accessed"], e["Cache Entry Created"], e["Last Modified"], e["Expire Time"],
-                                 e["Response Time"], e["User Timezone"], e["Cache Entry Location"],
-                                 e["Response Location"], e["File Location"], e["Content Encoding"], e["ETag"],
-                                 e["Max Age"], e["Server Response"], e["Server Name"], e["Server IP"], e["URL Length"],
-                                 e["Range URL Length"], e["MD5"], e["SHA1"], e["SHA256"]])
+        write_data.writerow(
+            [
+                "Filename",
+                "URL",
+                "URL Length",
+                "URL Location",
+                "Range URL",
+                "Range URL Length",
+                "Range URL Location",
+                "Cache Entry Location",
+                "Content Size",
+                "Content Location",
+                "Response Size",
+                "Response Location",
+                "Entry Creation Time",
+                "Range Entry Creation Time",
+                "Last Accessed Time",
+                "Last Modified Time",
+                "Entry Expiry Time",
+                "Server Response Time",
+                "Server Response",
+                "Content Type",
+                "Content Encoding",
+                "ETag",
+                "Max Age",
+                "Server Name",
+                "Server IP",
+                "MD5",
+                "SHA1",
+                "SHA256",
+            ]
+        )
+        for i in cache_list:
+            write_data.writerow(
+                [
+                    i.filename,
+                    i.url,
+                    i.url_length,
+                    get_location(i.url_location),
+                    i.range_url,
+                    i.range_url_length,
+                    get_location(i.range_url_location),
+                    get_location(i.entry_location),
+                    i.content_size,
+                    get_location(i.content_location),
+                    i.response_size,
+                    get_location(i.response_location),
+                    get_time(i.entry_created_time, i),
+                    get_time(i.partial_entry_created_time, i),
+                    get_time(i.last_accessed_time, i),
+                    get_time(i.last_modified_time, i),
+                    i.expiry_time,
+                    i.response_time,
+                    i.server_response,
+                    i.content_type,
+                    i.content_encoding,
+                    i.etag,
+                    i.max_age,
+                    i.server_name,
+                    i.server_ip,
+                    i.md5,
+                    i.sha1,
+                    i.sha256,
+                ]
+            )
+
+
+def get_location(location):
+    if location:
+        return location[0] + " [" + str(location[1]) + "]"
+    else:
+        return ""
+
+
+def get_time(time, entry):
+    if time:
+        return time + " " + entry.response_time.split(" ", 2)[2]
+    else:
+        return ""
 
 
 # Create report for data recovered from activity log
@@ -114,9 +177,9 @@ table, th, td{{border: 1px solid black;}}
                 if len(e["attachments"]) > 0:
                     url = e["attachments"][0]["url"].split("attachments", 1)[1]
                     for key in cache_data_list:
-                        if url in key["URL"]:
-                            att_file = key["Filename"]
-                            img_url = key["URL"]
+                        if url in key.url:
+                            att_file = key.filename
+                            img_url = key.url
                             if exists(join(output_dir, "Extracted", "Images", att_file)):
                                 att_path = join(output_dir, "Extracted", "Images", att_file)
                                 break
