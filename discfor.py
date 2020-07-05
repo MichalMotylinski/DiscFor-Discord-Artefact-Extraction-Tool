@@ -21,6 +21,7 @@ from simplecache import read_simple_cache
 # Main menu function is the starting point of DiscFor.
 def main_menu():
     home_path = str(Path.home())
+    output_dir = ""
     print("===================================================")
     print("DISCFOR MAIN MENU")
     print("===================================================")
@@ -45,6 +46,7 @@ def main_menu():
                 if sys.path[0] not in output_path:
                     output_path = join(sys.path[0], output_path)
             discord_path = system_search(home_path)
+
             recovery(discord_path, output_path)
         except FileNotFoundError:
             print("Incorrect path structure")
@@ -85,6 +87,7 @@ def main_menu():
 def system_search(search_dir):
     print("\nSearching system...")
     discord_path = ""
+
     # Generate files and directories of current file system
     # Traverse generated directory tree in search of Discord folder
     for root, dirs, files in walk(search_dir):
@@ -93,16 +96,24 @@ def system_search(search_dir):
                 directory_content = listdir(join(root, directory))
                 if "Cache" and "Local Storage" in directory_content:
                     discord_path = join(root, directory)
-                    break
+                    print("\nDiscord folder found under:\n" + discord_path)
+                    decision = ""
+                    while decision != "y" and decision != "n" and decision != "yes" and decision != "no":
+                        print("\nType [y/yes] to accept the result or [n/no] to continue search:")
+                        decision = input()
+                    if decision == "y" or decision == "yes":
+                        break
+                    elif decision == "n" or decision == "no":
+                        discord_path = None
+                        continue
         if discord_path:
-            print("\nDiscord folder found under:\n" + discord_path)
             return discord_path
     if not discord_path:
-        return print("Discord folder not found"), main_menu()
+        return print("\nDiscord folder not found"), main_menu()
 
 
 # Create dump directories for output of the program
-def create_dump(discord_path, output_path):
+def create_recovery_dir(discord_path, output_path, backup):
     output_dir = ""
     # Check if Discord files are locked by application
     try:
@@ -123,52 +134,73 @@ def create_dump(discord_path, output_path):
         makedirs(join(output_dir, "Extracted", "Other"))
         makedirs(join(output_dir, "Reports", "Chat_logs"))
 
-        cache_path = join(discord_path, "Cache")
-        # Copy Discord cache directory with all of its content
-        copytree(cache_path, join(output_dir, "Dumps", "Cache"))
-        activity_path = join(discord_path, "Local Storage", "leveldb")
-        for file in listdir(activity_path):
-            if ".log" in file:
-                copy2(join(activity_path, file), join(output_dir, "Dumps", file))
-                break
+        if backup:
+            discord_path = create_backup(discord_path, output_dir)
     else:
         print("Permission denied, please close discord.")
         main_menu()
-    return output_dir
+    return output_dir, discord_path
+
+
+def create_backup(discord_path, output_dir ):
+
+    cache_path = join(discord_path, "Cache")
+    # Copy Discord cache directory with all of its content
+    copytree(cache_path, join(output_dir, "Dumps", "Cache"))
+    activity_path = join(discord_path, "Local Storage", "leveldb")
+    for file in listdir(activity_path):
+        if ".log" in file:
+            copy2(join(activity_path, file), join(output_dir, "Dumps", file))
+            break
+    return join(output_dir, "Dumps")
 
 
 # Three phases of recovery are called from here.
 # Creation of output directory, actual extraction of data and reports creation.
 def recovery(discord_path, output_path):
-    print("\nCreating data backup...")
-    backup_start = perf_counter()
-    output_dir = create_dump(discord_path, output_path)
-    backup_end = perf_counter()
-    print("Backup created successfully in: ", round((backup_end - backup_start), 2), "s")
+    decision = ""
+    output_dir = ""
+    backup_time = ""
+    while decision != "y" and decision != "n" and decision != "yes" and decision != "no":
+        print("\nDo you want to create data backup? (y/n or yes/no)")
+        decision = input().lower()
+        if decision != "y" and decision != "n" and decision != "yes" and decision != "no":
+            print("\nWrong input")
+        if decision == "y" or decision == "yes":
+            backup = True
+            print("\nCreating data backup...")
+            backup_start = perf_counter()
+            output_dir, discord_path = create_recovery_dir(discord_path, output_path, backup)
+            backup_time = round((perf_counter() - backup_start), 2)
+            print("Backup created successfully in: ", backup_time, "s")
+        else:
+            backup = False
+            output_dir, discord_path = create_recovery_dir(discord_path, output_path, backup)
+
     recovery_start = perf_counter()
     # Check what structure is used (Disk Cache or Simple Cache) and call appropriate function
-    if "data_0" and "data_1" and "data_2" and "data_3" in listdir(join(output_dir, "Dumps", "Cache")):
+    if "data_0" and "data_1" and "data_2" and "data_3" in listdir(join(discord_path, "Cache")):
         print("\nBeginning data extraction...")
-        cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_cache_entry(output_dir)
+        cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_cache_entry(discord_path, output_dir)
     else:
         print("\nBeginning data extraction...")
-        cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_simple_cache(output_dir)
+        cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_simple_cache(discord_path, output_dir)
     servers, channels, mails = get_activity_data(output_dir)
-    recovery_end = perf_counter()
-    print("Data recovery completed successfully in: ", round((recovery_end - recovery_start), 2), "s")
+    recovery_time = round((perf_counter() - recovery_start), 2)
+    print("Data recovery completed successfully in: ", recovery_time, "s")
     print("\nCreating reports...")
     reporting_start = perf_counter()
     chat_to_html(cache_data_list, output_dir)
     report_cache(cache_data_list, output_dir)
     report_activity(servers, channels, mails, output_dir)
-    reporting_end = perf_counter()
-    print("Reporting completed successfully in: ", round((reporting_end - reporting_start), 2), "s")
+    reporting_time = round((perf_counter() - reporting_start), 2)
+    print("Reporting completed successfully in: ", reporting_time, "s")
     print("\nDiscFor completed extraction of Discord data.")
     print("Total number of entries found: ", all_entries)
     print("Files recovered: ", recovered)
     print("Empty or partial entries: ", empty_entries)
     print("Reconstructed entries/files: ", reconstructed)
-    print("Total time: ", round((reporting_end - backup_start), 2), "s")
+    print("Total time: ", round(backup_time + recovery_time + reporting_time, 2), "s")
     print("\nYou can find results of extraction in:")
     print(output_dir, "\n")
     # Clear memory before ending current iteration
