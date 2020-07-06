@@ -5,6 +5,7 @@ class Cache:
 
         # Cache entry location
         self.__entry_location = ""
+        self.__rankings_location = ""
 
         # URL data
         self.__url = ""
@@ -25,12 +26,13 @@ class Cache:
         # Time related data
         self.__last_accessed_time = ""
         self.__entry_created_time = ""
+        self.__partial_entry_created_time = ""
         self.__last_modified_time = ""
         self.__expiry_time = ""
         self.__response_time = ""
-        self.__timezone = ""
 
         # Other data retrieved from server HTTP response
+        self.__server_response = ""
         self.__content_encoding = ""
         self.__etag = ""
         self.__max_age = ""
@@ -60,6 +62,14 @@ class Cache:
     @entry_location.setter
     def entry_location(self, entry_location):
         self.__entry_location = entry_location
+
+    @property
+    def rankings_location(self):
+        return self.__rankings_location
+
+    @rankings_location.setter
+    def rankings_location(self, rankings_location):
+        self.__rankings_location = rankings_location
 
     # URL data getters & setters
     @property
@@ -162,6 +172,14 @@ class Cache:
         self.__entry_created_time = entry_created_time
 
     @property
+    def partial_entry_created_time(self):
+        return self.__partial_entry_created_time
+
+    @partial_entry_created_time.setter
+    def partial_entry_created_time(self, partial_entry_created_time):
+        self.__partial_entry_created_time = partial_entry_created_time
+
+    @property
     def last_modified_time(self):
         return self.__last_modified_time
 
@@ -185,15 +203,15 @@ class Cache:
     def response_time(self, response_time):
         self.__response_time = response_time
 
-    @property
-    def timezone(self):
-        return self.__timezone
-
-    @timezone.setter
-    def timezone(self, timezone):
-        self.__timezone = timezone
-
     # Getters and setters for other data retrieved from server HTTP response
+    @property
+    def server_response(self):
+        return self.__server_response
+
+    @server_response.setter
+    def server_response(self, server_response):
+        self.__server_response = server_response
+
     @property
     def content_encoding(self):
         return self.__content_encoding
