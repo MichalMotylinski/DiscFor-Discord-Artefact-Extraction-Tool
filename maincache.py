@@ -3,7 +3,7 @@ from os import SEEK_SET
 from os.path import join, exists
 
 # List of local imports
-from common import get_filename, content_to_file, read_http_response, hex_time_convert
+from common import get_filename, content_to_file, read_http_response, hex_time_convert, get_data
 from cachedata import Cache
 
 # This script contains functions used only for data recovery from Chromium Disk Cache structure
@@ -85,8 +85,6 @@ def read_cache_entry(discord_path, dump_dir):
             elif cache_content_part == 1:
                 cache_temp_list1.append(cache_entry)
 
-            get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
-
             # Fetch appropriate data from server HTTP response
             response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
             read_http_response(str(response_data), cache_entry)
@@ -94,6 +92,7 @@ def read_cache_entry(discord_path, dump_dir):
             cache_entry.entry_location = entry[0]
             cache_entry.last_accessed_time = entry[1]
             cache_entry.last_modified_time = entry[2]
+            cache_entry.rankings_location = entry[3]
 
     for i in cache_temp_list2:
         for j in cache_temp_list1:
@@ -141,7 +140,7 @@ def read_rankings(cache_dir):
                 last_access_time = hex_time_convert(int(entry[0:7][::-1].hex(), 16))
                 entry_created_time = hex_time_convert(int(entry[8:15][::-1].hex(), 16))
                 address = read_entry(entry[24:28][::-1].hex())
-                objects = (address, last_access_time, entry_created_time)
+                objects = (address, last_access_time, entry_created_time, ("data_0", offset))
                 ranking_list.append(objects)
                 i += 1
             offset += 36
@@ -167,10 +166,3 @@ def read_entry(content_address):
     elif content_address[0] == "8":
         resource_location = ("f_" + content_address[2:8], 0)
     return resource_location
-
-
-def get_data(cache_dir, data_location, data_size):
-    with open(join(cache_dir, data_location[0]), "rb") as file:
-        file.seek(data_location[1], SEEK_SET)
-        data = file.read(data_size)
-    return data
