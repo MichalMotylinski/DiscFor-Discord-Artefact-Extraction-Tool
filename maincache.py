@@ -11,14 +11,14 @@ from cachedata import Cache
 
 
 # Main class for Disk Cache structure reading data from cache entries
-def read_cache_entry(dump_dir):
+def read_cache_entry(discord_path, dump_dir):
     cache_list = []
     cache_temp_list1 = []
     cache_temp_list2 = []
 
     reconstructed = 0
     recovered = 0
-    cache_dir = join(dump_dir, "Dumps", "Cache")
+    cache_dir = join(discord_path, "Cache")
     ranking_list = read_rankings(cache_dir)
     all_entries = len(ranking_list)
 
@@ -88,36 +88,37 @@ def read_cache_entry(dump_dir):
             get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
 
             # Fetch appropriate data from server HTTP response
-            read_http_response(str(get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)), cache_entry)
+            response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
+            read_http_response(str(response_data), cache_entry)
 
             cache_entry.entry_location = entry[0]
             cache_entry.last_accessed_time = entry[1]
             cache_entry.last_modified_time = entry[2]
 
-        for i in cache_temp_list2:
-            for j in cache_temp_list1:
-                if j.url in i.range_url:
-                    j.partial_entry_created_time = i.partial_entry_created_time
-                    j.range_url = i.range_url
-                    j.range_url_length = i.range_url_length
-                    j.range_url_location = i.range_url_location
-                    j.content_size = i.content_size
-                    j.content_location = i.content_location
-                    cache_list.append(j)
-                    break
+    for i in cache_temp_list2:
+        for j in cache_temp_list1:
+            if j.url in i.range_url:
+                j.partial_entry_created_time = i.partial_entry_created_time
+                j.range_url = i.range_url
+                j.range_url_length = i.range_url_length
+                j.range_url_location = i.range_url_location
+                j.content_size = i.content_size
+                j.content_location = i.content_location
+                cache_list.append(j)
+                break
 
-        cache_temp_list1.clear()
-        cache_temp_list2.clear()
+    cache_temp_list1.clear()
+    cache_temp_list2.clear()
 
-        for entry in cache_list:
-            filename, extension = get_filename(entry.content_type, entry.url)
-            content = get_data(cache_dir, entry.content_location, entry.content_size)
-            content_to_file(content, filename, extension, dump_dir, entry)
+    for entry in cache_list:
+        filename, extension = get_filename(entry.content_type, entry.url)
+        content = get_data(cache_dir, entry.content_location, entry.content_size)
+        content_to_file(content, filename, extension, dump_dir, entry)
 
-            if content is not None:
-                recovered += 1
+        if content is not None:
+            recovered += 1
 
-        empty_entries = all_entries - recovered
+    empty_entries = all_entries - recovered
     return cache_list, all_entries, recovered, empty_entries, reconstructed
 
 

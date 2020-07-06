@@ -53,28 +53,27 @@ def main_menu():
         main_menu()
     elif selection == "2":
         print("\nPlease provide path for extraction")
-        try:
-            target_path = input()
-            if target_path or target_path == "":
-                # Check if structure of a directory given by user is correct
-                if "Cache" and "Local Storage" in listdir(target_path):
-                    print("Please provide output path")
-                    output_path = input()
-                    if not output_path:
-                        if getattr(sys, "frozen", False):
-                            output_path = dirname(sys.executable)
-                        else:
-                            output_path = sys.path[0]
+
+        target_path = input()
+        if target_path or target_path == "":
+            # Check if structure of a directory given by user is correct
+            if "Cache" and "Local Storage" in listdir(target_path):
+                print("Please provide output path")
+                output_path = input()
+                if not output_path:
+                    if getattr(sys, "frozen", False):
+                        output_path = dirname(sys.executable)
                     else:
-                        if sys.path[0] not in output_path:
-                            output_path = join(sys.path[0], output_path)
-                    recovery(target_path, output_path)
+                        output_path = sys.path[0]
                 else:
-                    print("\nThis is not a Discord directory or something is missing")
-                    print("Following folders are required:")
-                    print("Cache\n" + join("Local Storage", "leveldb\n"))
-        except FileNotFoundError:
-            print("Incorrect path structure")
+                    if sys.path[0] not in output_path:
+                        output_path = join(sys.path[0], output_path)
+                recovery(target_path, output_path)
+            else:
+                print("\nThis is not a Discord directory or something is missing")
+                print("Following folders are required:")
+                print("Cache\n" + join("Local Storage", "leveldb\n"))
+
         main_menu()
     elif selection == "3":
         exit()
@@ -126,7 +125,6 @@ def create_recovery_dir(discord_path, output_path, backup):
     if in_use is False:
         current_time = strftime("%Y%m%d%H%M%S")
         output_dir = join(output_path, f"Dump_{current_time}")
-        makedirs(join(output_dir, "Dumps"))
         makedirs(join(output_dir, "Extracted", "Images"))
         makedirs(join(output_dir, "Extracted", "Chat_logs"))
         makedirs(join(output_dir, "Extracted", "Video"))
@@ -143,15 +141,12 @@ def create_recovery_dir(discord_path, output_path, backup):
 
 
 def create_backup(discord_path, output_dir ):
-
+    makedirs(join(output_dir, "Dumps"))
     cache_path = join(discord_path, "Cache")
     # Copy Discord cache directory with all of its content
     copytree(cache_path, join(output_dir, "Dumps", "Cache"))
-    activity_path = join(discord_path, "Local Storage", "leveldb")
-    for file in listdir(activity_path):
-        if ".log" in file:
-            copy2(join(activity_path, file), join(output_dir, "Dumps", file))
-            break
+    activity_path = join(discord_path, "Local Storage")
+    copytree(activity_path, join(output_dir, "Dumps", "Local Storage"))
     return join(output_dir, "Dumps")
 
 
@@ -160,7 +155,7 @@ def create_backup(discord_path, output_dir ):
 def recovery(discord_path, output_path):
     decision = ""
     output_dir = ""
-    backup_time = ""
+    backup_time = 0
     while decision != "y" and decision != "n" and decision != "yes" and decision != "no":
         print("\nDo you want to create data backup? (y/n or yes/no)")
         decision = input().lower()
@@ -185,7 +180,7 @@ def recovery(discord_path, output_path):
     else:
         print("\nBeginning data extraction...")
         cache_data_list, all_entries, recovered, empty_entries, reconstructed = read_simple_cache(discord_path, output_dir)
-    servers, channels, mails = get_activity_data(output_dir)
+    servers, channels, mails = get_activity_data(discord_path)
     recovery_time = round((perf_counter() - recovery_start), 2)
     print("Data recovery completed successfully in: ", recovery_time, "s")
     print("\nCreating reports...")
@@ -200,7 +195,7 @@ def recovery(discord_path, output_path):
     print("Files recovered: ", recovered)
     print("Empty or partial entries: ", empty_entries)
     print("Reconstructed entries/files: ", reconstructed)
-    print("Total time: ", round(backup_time + recovery_time + reporting_time, 2), "s")
+    print("Total time: ", str(round(backup_time + recovery_time + reporting_time, 2)), "s")
     print("\nYou can find results of extraction in:")
     print(output_dir, "\n")
     # Clear memory before ending current iteration

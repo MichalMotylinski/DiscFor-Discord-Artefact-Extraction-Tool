@@ -8,13 +8,14 @@ from re import findall
 
 
 # Read data from activity log file
-def get_activity_data(output_dir):
+def get_activity_data(discord_path):
     server_list = []
     channel_list = []
     mail_list = []
-    for file in listdir(join(output_dir, "Dumps")):
+    activity_dir = join(discord_path, "Local Storage", "leveldb")
+    for file in listdir(activity_dir):
         if ".log" in file:
-            with open(join(output_dir, "Dumps", file), "r", encoding="utf-8", errors="ignore") as f:
+            with open(join(activity_dir, file), "r", encoding="utf-8", errors="ignore") as f:
                 data = f.read()
                 # Find all email addresses, server IDs and channel IDs
                 mail_list = findall(r"([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)", data)
