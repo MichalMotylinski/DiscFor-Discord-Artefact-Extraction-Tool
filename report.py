@@ -23,6 +23,7 @@ def report_cache(cache_list, output_dir):
                 "Range URL Length",
                 "Range URL Location",
                 "Cache Entry Location",
+                "Ranking Entry Location",
                 "Content Size",
                 "Content Location",
                 "Response Size",
@@ -56,14 +57,15 @@ def report_cache(cache_list, output_dir):
                     i.range_url_length,
                     get_location(i.range_url_location),
                     get_location(i.entry_location),
+                    get_location(i.rankings_location),
                     i.content_size,
                     get_location(i.content_location),
                     i.response_size,
                     get_location(i.response_location),
-                    get_time(i.entry_created_time, i),
-                    get_time(i.partial_entry_created_time, i),
-                    get_time(i.last_accessed_time, i),
-                    get_time(i.last_modified_time, i),
+                    i.entry_created_time,
+                    i.partial_entry_created_time,
+                    i.last_accessed_time,
+                    i.last_modified_time,
                     i.expiry_time,
                     i.response_time,
                     i.server_response,
@@ -83,13 +85,6 @@ def report_cache(cache_list, output_dir):
 def get_location(location):
     if location:
         return location[0] + " [" + str(location[1]) + "]"
-    else:
-        return ""
-
-
-def get_time(time, entry):
-    if time:
-        return time + " " + entry.response_time.split(" ", 2)[2]
     else:
         return ""
 

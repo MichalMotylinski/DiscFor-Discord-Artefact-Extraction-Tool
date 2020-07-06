@@ -21,7 +21,6 @@ from simplecache import read_simple_cache
 # Main menu function is the starting point of DiscFor.
 def main_menu():
     home_path = str(Path.home())
-    output_dir = ""
     print("===================================================")
     print("DISCFOR MAIN MENU")
     print("===================================================")
@@ -140,7 +139,7 @@ def create_recovery_dir(discord_path, output_path, backup):
     return output_dir, discord_path
 
 
-def create_backup(discord_path, output_dir ):
+def create_backup(discord_path, output_dir):
     makedirs(join(output_dir, "Dumps"))
     cache_path = join(discord_path, "Cache")
     # Copy Discord cache directory with all of its content
