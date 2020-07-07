@@ -20,13 +20,15 @@ def read_simple_cache(discord_path, dump_dir):
     all_entries = 0
     cache_dir = join(discord_path, "Cache")
 
+    # Read real index file containing all cache entry addresses
+    cache_address_list, cache_address_data = read_real_index(cache_dir)
+
     # Begin extraction by iterating through all cache entries (based on number of files in Cache directory)
     for file in listdir(cache_dir):
         # Ensure that correct entry types are read
         if "_0" in file:
             all_entries += 1
             cache_entry = Cache()
-
             # Read content of a cache file
             with open(join(cache_dir, file), "rb") as cache_file:
                 cache_entry.entry_location = (file, 0)
@@ -61,32 +63,29 @@ def read_simple_cache(discord_path, dump_dir):
 
                 filename, extension = get_filename(cache_entry.content_type, cache_entry.url)
 
+            # Append information found in index file to the main list
+            cache_name = file[0:16]
+            try:
+                if cache_name in cache_address_list:
+                    index = cache_address_list.index(cache_name)
+                    cache_entry.rankings_location = cache_address_data[index][0]
+                    cache_entry.last_accessed_time = cache_address_data[index][1]
+                    cache_entry.entry_created_time = cache_address_data[index][1]
+                    del cache_address_list[index]
+                    del cache_address_data[index]
+            except ValueError:
+                cache_entry.last_accessed_time = ""
+                cache_entry.entry_created_time = ""
+
             # Save information to dictionary for further use
             if cache_entry.content_size != 0:
                 # Extract files found within cache and calculate their hashes
                 content = get_data(cache_dir, cache_entry.content_location, cache_entry.content_size)
                 content_to_file(content, filename, extension, dump_dir, cache_entry)
                 recovered += 1
+                cache_list.append(cache_entry)
             else:
                 empty_entries += 1
-
-            cache_list.append(cache_entry)
-
-    # Read real index file containing all cache entry addresses
-    cache_address_list = read_real_index(cache_dir)
-
-    # Append information found in index file to the main list
-    for cache_address in cache_address_list:
-        for entry in cache_list:
-            try:
-                if cache_address[1] in entry.entry_location[0]:
-                    entry.rankings_location = cache_address[0]
-                    entry.last_accessed_time = cache_address[2]
-                    entry.entry_created_time = cache_address[2]
-                    break
-            except ValueError:
-                entry.last_accessed_time = ""
-                entry.entry_created_time = ""
 
     reconstructed = range_files - empty_entries
     return cache_list, all_entries, recovered, empty_entries, reconstructed
@@ -95,6 +94,7 @@ def read_simple_cache(discord_path, dump_dir):
 # Read index file containing names of all cache files and control data about cache entries
 def read_real_index(cache_dir):
     cache_address_list = []
+    data_list = []
     with open(join(cache_dir, "index-dir", "the-real-index"), "rb") as index_file:
         index_file.seek(20, SEEK_SET)
         entry_count = int(index_file.read(8)[::-1].hex(), 16)
@@ -105,10 +105,11 @@ def read_real_index(cache_dir):
             cache_name = str(index_file.read(8)[::-1].hex())
             last_accessed = hex_time_convert(int(index_file.read(8)[::-1].hex(), 16))
             entry_location = ("the-real-index", offset)
-            cache_address_list.append((entry_location, cache_name, last_accessed))
+            cache_address_list.append(cache_name)
+            data_list.append((entry_location, last_accessed))
             i += 1
             offset += 24
-    return cache_address_list
+    return cache_address_list, data_list
 
 
 # Read data stored in #####_s format file
