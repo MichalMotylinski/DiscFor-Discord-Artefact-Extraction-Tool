@@ -149,11 +149,13 @@ def get_filename(content_type, url_data):
 # Function cleaning server HTTP response data
 def read_http_response(http_response_data, cache_entry):
 
+    # First get server IP from the end of the response
     response_ip = http_response_data[len(http_response_data) - 160:len(http_response_data)]
     try:
         cache_entry.server_ip = findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}", response_ip)[0].strip()
     except IndexError:
         cache_entry.server_ip = ""
+    # Find where actual response data ends and remove unnecessary part
     response_end = http_response_data.find("\\x00\\x00\\x00")
     http_response_data = http_response_data[0:response_end + 4]
 
@@ -259,6 +261,7 @@ def time_convert(time):
     return new_time
 
 
+# Function used to get data from specified location
 def get_data(cache_dir, data_location, data_size):
     with open(join(cache_dir, data_location[0]), "rb") as file:
         file.seek(data_location[1], SEEK_SET)

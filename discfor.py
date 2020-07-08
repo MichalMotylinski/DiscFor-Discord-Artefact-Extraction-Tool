@@ -45,7 +45,6 @@ def main_menu():
                 if sys.path[0] not in output_path:
                     output_path = join(sys.path[0], output_path)
             discord_path = system_search(home_path)
-
             recovery(discord_path, output_path)
         except FileNotFoundError:
             print("Incorrect path structure")
@@ -139,6 +138,7 @@ def create_recovery_dir(discord_path, output_path, backup):
     return output_dir, discord_path
 
 
+# Function responsible for creating backup folder and making a copy of the original data
 def create_backup(discord_path, output_dir):
     makedirs(join(output_dir, "Dumps"))
     cache_path = join(discord_path, "Cache")
@@ -156,7 +156,7 @@ def recovery(discord_path, output_path):
     output_dir = ""
     backup_time = 0
     while decision != "y" and decision != "n" and decision != "yes" and decision != "no":
-        print("\nDo you want to create data backup? (y/n or yes/no)")
+        print("\nDo you want to create data backup? (y/yes or n/no)")
         decision = input().lower()
         if decision != "y" and decision != "n" and decision != "yes" and decision != "no":
             print("\nWrong input")

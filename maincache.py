@@ -31,6 +31,7 @@ def read_cache_entry(discord_path, dump_dir):
             data_1.seek(block_offset + 72, SEEK_SET)
             cache_content_part = int(data_1.read(1).hex(), 16)
 
+            # If entry is partial just fetch necessary information and omit checking empty parts
             if cache_content_part == 2:
                 data_1.seek(block_offset + 24, SEEK_SET)
                 partial_entry_created_time = hex_time_convert(int(data_1.read(8)[::-1].hex(), 16))
@@ -58,6 +59,7 @@ def read_cache_entry(discord_path, dump_dir):
                     reconstructed += 1
                 continue
 
+            # If entry is not partial or is part 1 then fetch all data
             data_1.seek(block_offset + 24, SEEK_SET)
             cache_entry.entry_created_time = hex_time_convert(int(data_1.read(8)[::-1].hex(), 16))
 
@@ -80,20 +82,26 @@ def read_cache_entry(discord_path, dump_dir):
                 cache_entry.url = data_1.read(cache_entry.url_length).decode("ascii")
                 cache_entry.url_location = ("data_1", block_offset + 96)
 
+            # Allocate new entry to appropriate list
             if cache_content_part == 0 and cache_entry.content_size != 0:
+                # Full entries
                 cache_list.append(cache_entry)
             elif cache_content_part == 1:
+                # Partial entries
                 cache_temp_list1.append(cache_entry)
 
             # Fetch appropriate data from server HTTP response
             response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
             read_http_response(str(response_data), cache_entry)
 
+            # Add data recovered from rankings file
             cache_entry.entry_location = entry[0]
             cache_entry.last_accessed_time = entry[1]
             cache_entry.last_modified_time = entry[2]
             cache_entry.rankings_location = entry[3]
 
+    # Loop through partial lists and if there is a match join data from part 2 to part 1
+    # At the end append reconstructed entry to the list of full entries
     for i in cache_temp_list2:
         for j in cache_temp_list1:
             if j.url in i.range_url:
@@ -106,14 +114,15 @@ def read_cache_entry(discord_path, dump_dir):
                 cache_list.append(j)
                 break
 
+    # Clear the lists as they are not needed anymore
     cache_temp_list1.clear()
     cache_temp_list2.clear()
 
+    # Recover file content from cache entry
     for entry in cache_list:
         filename, extension = get_filename(entry.content_type, entry.url)
         content = get_data(cache_dir, entry.content_location, entry.content_size)
         content_to_file(content, filename, extension, dump_dir, entry)
-
         if content is not None:
             recovered += 1
 

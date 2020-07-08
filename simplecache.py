@@ -29,38 +29,43 @@ def read_simple_cache(discord_path, dump_dir):
         if "_0" in file:
             all_entries += 1
             cache_entry = Cache()
-            # Read content of a cache file
+            # Read content of a cache entry file
             with open(join(cache_dir, file), "rb") as cache_file:
+                # Find EOF storing information about the content and fetch the data
                 cache_entry.entry_location = (file, 0)
                 eof1 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x01", cache_file.read())
                 cache_file.seek(eof1.end() + 7, SEEK_SET)
                 cache_entry.content_size = int(cache_file.read(4)[::-1].hex(), 16)
 
+                # Find EOF storing information about the server response and fetch the data
                 cache_file.seek(0, SEEK_SET)
                 eof3 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x03", cache_file.read())
                 cache_file.seek(eof3.end() + 7, SEEK_SET)
                 cache_entry.response_size = int(cache_file.read(4)[::-1].hex(), 16)
                 cache_entry.response_location = (file, eof1.end() + 15)
 
+                # Get data stored at the beginning of the cache entry file
                 cache_file.seek(12, SEEK_SET)
                 cache_entry.url_length = int(cache_file.read(4)[::-1].hex(), 16)
                 cache_entry.url_location = (file, 24)
                 cache_file.seek(cache_entry.url_location[1], SEEK_SET)
                 cache_entry.url = cache_file.read(cache_entry.url_length).decode("ascii")
 
-                # Get name of a cached file and recover its content
+                # Get location of the content
                 if cache_entry.content_size == 0:
                     # Additional information is fetched if data is stored in separate file
                     content_location = (file[0:16] + "_s")
                     read_range_file(cache_entry, content_location, cache_dir)
                     range_files += 1
                 else:
+                    # If content exists in current entry file then fetch only its location
                     cache_entry.content_location = (file, 24 + cache_entry.url_length)
 
                 # Fetch appropriate data from server HTTP response
                 response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
                 read_http_response(str(response_data), cache_entry)
 
+                # Fetch name of the file from URL and its extension based on content type
                 filename, extension = get_filename(cache_entry.content_type, cache_entry.url)
 
             # Append information found in index file to the main list
