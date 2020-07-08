@@ -47,31 +47,32 @@ def main_menu():
             discord_path = system_search(home_path)
             recovery(discord_path, output_path)
         except FileNotFoundError:
-            print("Incorrect path structure")
+            print("Incorrect path structure or a file is missing")
         main_menu()
     elif selection == "2":
         print("\nPlease provide path for extraction")
-
-        target_path = input()
-        if target_path or target_path == "":
-            # Check if structure of a directory given by user is correct
-            if "Cache" and "Local Storage" in listdir(target_path):
-                print("Please provide output path")
-                output_path = input()
-                if not output_path:
-                    if getattr(sys, "frozen", False):
-                        output_path = dirname(sys.executable)
+        try:
+            target_path = input()
+            if target_path or target_path == "":
+                # Check if structure of a directory given by user is correct
+                if "Cache" and "Local Storage" in listdir(target_path):
+                    print("Please provide output path")
+                    output_path = input()
+                    if not output_path:
+                        if getattr(sys, "frozen", False):
+                            output_path = dirname(sys.executable)
+                        else:
+                            output_path = sys.path[0]
                     else:
-                        output_path = sys.path[0]
+                        if sys.path[0] not in output_path:
+                            output_path = join(sys.path[0], output_path)
+                    recovery(target_path, output_path)
                 else:
-                    if sys.path[0] not in output_path:
-                        output_path = join(sys.path[0], output_path)
-                recovery(target_path, output_path)
-            else:
-                print("\nThis is not a Discord directory or something is missing")
-                print("Following folders are required:")
-                print("Cache\n" + join("Local Storage", "leveldb\n"))
-
+                    print("\nThis is not a Discord directory or something is missing")
+                    print("Following folders are required:")
+                    print("Cache\n" + join("Local Storage", "leveldb\n"))
+        except FileNotFoundError:
+            print("Incorrect path structure or a file is missing")
         main_menu()
     elif selection == "3":
         exit()
