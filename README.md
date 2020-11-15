@@ -1,7 +1,7 @@
 # DiscFor
 Digital Artefact Extraction Tool for Discord Application
 
-Developed as part of my B.Sc. (Hons.) Dissertation entitled "Retrieval and analysis of digital artefacts from Discord local directories"
+Developed as part of my B.Sc. (Hons.) Dissertation entitled "Forensic acquisition and analysis of digital artefacts from Discord application"
 
 This tool automates the extraction of digital artefacts and data that can be found in Discord local files. 
 
@@ -19,5 +19,3 @@ Second option allows you to choose discord folder for extraction as well as outp
 
 Information pulled from local files is stored in csv (for readability) and json (for further data manipulation)
 All information is being stored in Dump[date of scan] folder.
-
-This tool is for research purposes only.
