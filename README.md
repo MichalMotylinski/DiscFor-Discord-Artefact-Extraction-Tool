@@ -1,4 +1,4 @@
-# DiscFor
+# Discord Extraction Tool
 Digital Artefact Extraction Tool for Discord Application
 
 Developed as part of my B.Sc. (Hons.) Dissertation entitled "Forensic acquisition and analysis of digital artefacts from Discord application"
