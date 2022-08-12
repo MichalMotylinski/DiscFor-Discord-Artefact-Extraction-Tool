@@ -3,6 +3,7 @@ from os import listdir, SEEK_SET, SEEK_CUR
 from os.path import join, exists
 from re import search
 
+
 # List of local imports
 from common import get_filename, read_http_response, content_to_file, hex_time_convert, get_data
 from cachedata import Cache
@@ -32,24 +33,27 @@ def read_simple_cache(discord_path, dump_dir):
             # Read content of a cache entry file
             with open(join(cache_dir, file), "rb") as cache_file:
                 # Find EOF storing information about the content and fetch the data
-                cache_entry.entry_location = (file, 0)
-                eof1 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x01", cache_file.read())
-                cache_file.seek(eof1.end() + 7, SEEK_SET)
-                cache_entry.content_size = int(cache_file.read(4)[::-1].hex(), 16)
+                try:
+                    cache_entry.entry_location = (file, 0)
+                    eof1 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x01", cache_file.read())
+                    cache_file.seek(eof1.end() + 7, SEEK_SET)
+                    cache_entry.content_size = int(cache_file.read(4)[::-1].hex(), 16)
 
-                # Find EOF storing information about the server response and fetch the data
-                cache_file.seek(0, SEEK_SET)
-                eof3 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x03", cache_file.read())
-                cache_file.seek(eof3.end() + 7, SEEK_SET)
-                cache_entry.response_size = int(cache_file.read(4)[::-1].hex(), 16)
-                cache_entry.response_location = (file, eof1.end() + 15)
+                    # Find EOF storing information about the server response and fetch the data
+                    cache_file.seek(0, SEEK_SET)
+                    eof3 = search(b"\xd8\x41\x0d\x97\x45\x6f\xfa\xf4\x03", cache_file.read())
+                    cache_file.seek(eof3.end() + 7, SEEK_SET)
+                    cache_entry.response_size = int(cache_file.read(4)[::-1].hex(), 16)
+                    cache_entry.response_location = (file, eof1.end() + 15)
 
-                # Get data stored at the beginning of the cache entry file
-                cache_file.seek(12, SEEK_SET)
-                cache_entry.url_length = int(cache_file.read(4)[::-1].hex(), 16)
-                cache_entry.url_location = (file, 24)
-                cache_file.seek(cache_entry.url_location[1], SEEK_SET)
-                cache_entry.url = cache_file.read(cache_entry.url_length).decode("ascii")
+                    # Get data stored at the beginning of the cache entry file
+                    cache_file.seek(12, SEEK_SET)
+                    cache_entry.url_length = int(cache_file.read(4)[::-1].hex(), 16)
+                    cache_entry.url_location = (file, 24)
+                    cache_file.seek(cache_entry.url_location[1], SEEK_SET)
+                    cache_entry.url = cache_file.read(cache_entry.url_length).decode("ascii")
+                except:
+                    continue
 
                 # Get location of the content
                 if cache_entry.content_size == 0:
