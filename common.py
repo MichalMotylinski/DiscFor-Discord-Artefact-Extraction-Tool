@@ -6,6 +6,7 @@ from os import SEEK_SET
 from os.path import join, exists, splitext, basename
 from re import findall
 from urllib.parse import urlparse
+import brotli
 
 
 # This script contains functions used by other scripts to avoid code duplicates
@@ -290,7 +291,7 @@ def content_to_file(resource_data, filename, file_extension, output_dir, entry):
     # Brotli is not supported by python3. Use separate script or tool to decode file encoded in brotli
     # Currently extensions are changed for all brotli compressed files
     elif entry.content_encoding == "br":
-        file_extension = ".br"
+        resource_data = brotli.decompress(resource_data)
 
     # Write resource data to a new file
     i = 0
