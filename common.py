@@ -252,13 +252,16 @@ def month_convert(month):
 # Take apart time and reconstruct it in a new format
 def time_convert(time):
     old_time = time.split(" ")
-    if len(old_time) < 5:
+    try:
+        if len(old_time) < 5:
+            new_time = ""
+        else:
+            if "origin" in old_time[0].lower():
+                old_time.insert(0, "")
+            date = old_time[1] + "/" + month_convert(old_time[2]) + "/" + old_time[3]
+            new_time = date + " " + old_time[4] + " " + old_time[5]
+    except ValueError:
         new_time = ""
-    else:
-        if "origin" in old_time[0].lower():
-            old_time.insert(0, "")
-        date = old_time[1] + "/" + month_convert(old_time[2]) + "/" + old_time[3]
-        new_time = date + " " + old_time[4] + " " + old_time[5]
     return new_time
 
 
