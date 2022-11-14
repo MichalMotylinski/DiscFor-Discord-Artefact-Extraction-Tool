@@ -91,8 +91,11 @@ def read_cache_entry(discord_path, dump_dir):
                 cache_temp_list1.append(cache_entry)
 
             # Fetch appropriate data from server HTTP response
-            response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
-            read_http_response(str(response_data), cache_entry)
+            try:
+                response_data = get_data(cache_dir, cache_entry.response_location, cache_entry.response_size)
+                read_http_response(str(response_data), cache_entry)
+            except:
+                print("HTTP response data not found or in different format.")
 
             # Add data recovered from rankings file
             cache_entry.entry_location = entry[0]
