@@ -161,10 +161,11 @@ table, th, td{{border: 1px solid black;}}
         # Reading elements of a message
         if any("channel_id" in s for s in data):
             for e in data:
+                avatar_path = ""
                 avatar = e["author"]["avatar"]
                 if avatar is not None:
                     if exists(join(output_dir, "Extracted", "Images", f"{avatar}.webp")):
-                        avatar_path = join(output_dir, "Extracted", "Images", f"{avatar}.webp")
+                        avatar_path = join("..", "..", "Extracted", "Images", f"{avatar}.webp")
                 date = e["timestamp"].split("T", 1)[0]
                 time = e["timestamp"].split("T", 1)[1].split(".", 1)[0]
                 timestamp = date + " " + time
@@ -176,7 +177,7 @@ table, th, td{{border: 1px solid black;}}
                             att_file = key.filename
                             img_url = key.url
                             if exists(join(output_dir, "Extracted", "Images", att_file)):
-                                att_path = join(output_dir, "Extracted", "Images", att_file)
+                                att_path = join("..", "..", "Extracted", "Images", att_file)
                                 break
                 # Filling structure of a message with recovered data
                 message = f"""<table width="100%">
