@@ -161,6 +161,7 @@ table, th, td{{border: 1px solid black;}}
         # Reading elements of a message
         if any("channel_id" in s for s in data):
             for e in data:
+                avatar_path = ""
                 avatar = e["author"]["avatar"]
                 if avatar is not None:
                     if exists(join(output_dir, "Extracted", "Images", f"{avatar}.webp")):
